@@ -7,7 +7,8 @@ def call(Map configMap){
         }
         environment { 
             packageVersion = ''
-            nexusURL = '172.31.5.95:8081'
+            // can maintain in pipeline globals
+            //nexusURL = '172.31.5.95:8081'
         }
         options {
             timeout(time: 1, unit: 'HOURS')
@@ -60,7 +61,7 @@ def call(Map configMap){
                 steps {
                     sh """
                         ls -la
-                        zip -q -r catalogue.zip ./* -x ".git" -x "*.zip"
+                        zip -q -r ${configMap.component}.zip ./* -x ".git" -x "*.zip"
                         ls -ltr
                     """
                 }
@@ -70,15 +71,15 @@ def call(Map configMap){
                     nexusArtifactUploader(
                         nexusVersion: 'nexus3',
                         protocol: 'http',
-                        nexusUrl: "${nexusURL}",
+                        nexusUrl: pipelineGlobals.nexusURL(),
                         groupId: 'com.roboshop',
                         version: "${packageVersion}",
-                        repository: 'catalogue',
+                        repository: "${configMap.component}",
                         credentialsId: 'nexus-auth',
                         artifacts: [
-                            [artifactId: 'catalogue',
+                            [artifactId: "${configMap.component}",
                             classifier: '',
-                            file: 'catalogue.zip',
+                            file: "${configMap.component}.zip",
                             type: 'zip']
                         ]
                     )
@@ -96,7 +97,7 @@ def call(Map configMap){
                                 string(name: 'version', value: "$packageVersion"),
                                 string(name: 'environment', value: "dev")
                             ]
-                            build job: "catalogue-deploy", wait: true, parameters: params
+                            build job: "${configMap.component}-deploy", wait: true, parameters: params
                         }
                 }
             }
